@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -18,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { StatusBadge } from '@/components/status-badge'
-import { CoverLetterPanel } from '@/components/cover-letter-panel'
 import { FileText, ExternalLink, Trash2 } from 'lucide-react'
 import type { ApplicationStatus, JobApplication } from '@/lib/types'
 
@@ -29,14 +27,6 @@ interface ApplicationsTableProps {
 }
 
 export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: ApplicationsTableProps) {
-  const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null)
-  const [coverLetterOpen, setCoverLetterOpen] = useState(false)
-
-  const handleGenerateCoverLetter = (application: JobApplication) => {
-    setSelectedApplication(application)
-    setCoverLetterOpen(true)
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -116,36 +106,20 @@ export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: Ap
                   {application.notes || '—'}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleGenerateCoverLetter(application)}
-                    >
-                      <FileText className="size-4" />
-                      Cover Letter
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => onDelete(application.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => onDelete(application.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-
-      <CoverLetterPanel
-        application={selectedApplication}
-        open={coverLetterOpen}
-        onOpenChange={setCoverLetterOpen}
-      />
     </>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -10,51 +10,71 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Copy, Check, Sparkles } from 'lucide-react'
-import type { JobApplication } from '@/lib/types'
-
 interface CoverLetterPanelProps {
-  application: JobApplication | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function CoverLetterPanel({ application, open, onOpenChange }: CoverLetterPanelProps) {
+export function CoverLetterPanel({ open, onOpenChange }: CoverLetterPanelProps) {
+  const [jobDescription, setJobDescription] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (open && application) {
+    if (open) {
+      setJobDescription('')
       setCoverLetter('')
-      setIsGenerating(false)
+      setError(null)
+    } else {
+      abortRef.current?.abort()
     }
-  }, [open, application])
+  }, [open])
 
   const generateCoverLetter = async () => {
-    if (!application) return
-    
+    if (!jobDescription.trim()) return
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setIsGenerating(true)
-    
-    // Simulate AI generation with a realistic delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    const generatedLetter = `Dear Hiring Manager,
+    setCoverLetter('')
+    setError(null)
 
-I am writing to express my strong interest in the ${application.role} position at ${application.company}. With my background and passion for this field, I am confident that I would be a valuable addition to your team.
+    try {
+      const res = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobDescription }),
+        signal: controller.signal,
+      })
 
-Throughout my career, I have developed expertise in key areas relevant to this role. I am particularly drawn to ${application.company} because of your commitment to innovation and excellence in the industry.
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `Request failed (${res.status})`)
+      }
 
-I am excited about the opportunity to contribute to your team and help drive success at ${application.company}. I would welcome the chance to discuss how my skills and experience align with your needs.
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
 
-Thank you for considering my application. I look forward to the possibility of contributing to your team.
-
-Best regards,
-[Your Name]`
-
-    setCoverLetter(generatedLetter)
-    setIsGenerating(false)
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        setCoverLetter((prev) => prev + decoder.decode(value, { stream: true }))
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setError((err as Error).message || 'Something went wrong. Please try again.')
+      }
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const copyToClipboard = async () => {
@@ -63,74 +83,69 @@ Best regards,
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const canGenerate = !!jobDescription.trim() && !isGenerating
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
+      <SheetContent className="sm:max-w-lg overflow-y-auto flex flex-col gap-6">
         <SheetHeader>
           <SheetTitle>Generate Cover Letter</SheetTitle>
           <SheetDescription>
-            {application ? (
-              <>For {application.role} at {application.company}</>
-            ) : (
-              'Select an application to generate a cover letter'
-            )}
+            Paste a job description and generate a tailored cover letter.
           </SheetDescription>
         </SheetHeader>
-        
-        <div className="mt-6 space-y-4">
-          {!coverLetter && !isGenerating && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 rounded-full bg-secondary mb-4">
-                <Sparkles className="size-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-medium mb-2">Ready to Generate</h3>
-              <p className="text-sm text-muted-foreground mb-6 max-w-[280px]">
-                Click the button below to generate a personalized cover letter for this position.
-              </p>
-              <Button onClick={generateCoverLetter}>
-                <Sparkles className="size-4" />
-                Generate Cover Letter
-              </Button>
-            </div>
-          )}
 
-          {isGenerating && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Spinner className="size-8 mb-4" />
-              <p className="text-sm text-muted-foreground">Generating your cover letter...</p>
-            </div>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="job-description">Job Description</Label>
+          <Textarea
+            id="job-description"
+            placeholder="Paste the job description here…"
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            className="min-h-[160px] text-sm resize-none"
+          />
+        </div>
 
-          {coverLetter && !isGenerating && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Your Cover Letter</p>
+        <Button onClick={generateCoverLetter} disabled={!canGenerate}>
+          {isGenerating ? (
+            <>
+              <Spinner className="size-4" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-4" />
+              {coverLetter ? 'Regenerate' : 'Generate Cover Letter'}
+            </>
+          )}
+        </Button>
+
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
+        {(coverLetter || isGenerating) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Cover Letter</Label>
+              {coverLetter && !isGenerating && (
                 <Button size="sm" variant="outline" onClick={copyToClipboard}>
                   {copied ? (
-                    <>
-                      <Check className="size-4" />
-                      Copied!
-                    </>
+                    <><Check className="size-4" />Copied!</>
                   ) : (
-                    <>
-                      <Copy className="size-4" />
-                      Copy
-                    </>
+                    <><Copy className="size-4" />Copy</>
                   )}
                 </Button>
-              </div>
-              <Textarea
-                value={coverLetter}
-                onChange={(e) => setCoverLetter(e.target.value)}
-                className="min-h-[400px] font-mono text-sm"
-              />
-              <Button variant="outline" onClick={generateCoverLetter} className="w-full">
-                <Sparkles className="size-4" />
-                Regenerate
-              </Button>
+              )}
             </div>
-          )}
-        </div>
+            <Textarea
+              value={coverLetter}
+              onChange={(e) => setCoverLetter(e.target.value)}
+              className="min-h-[380px] text-sm font-mono"
+              placeholder={isGenerating ? 'Writing your cover letter…' : ''}
+            />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )

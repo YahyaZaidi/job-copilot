@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { StatsCards } from '@/components/stats-cards'
 import { ApplicationsTable } from '@/components/applications-table'
 import { AddApplicationDialog } from '@/components/add-application-dialog'
-import { Briefcase } from 'lucide-react'
+import { CoverLetterPanel } from '@/components/cover-letter-panel'
+import { Button } from '@/components/ui/button'
+import { Briefcase, Sparkles } from 'lucide-react'
 import type { ApplicationStatus, JobApplication } from '@/lib/types'
 
 // Sample data for demonstration
@@ -55,6 +57,7 @@ const initialApplications: JobApplication[] = [
 
 export default function Home() {
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications)
+  const [coverLetterOpen, setCoverLetterOpen] = useState(false)
 
   const handleAddApplication = (newApp: Omit<JobApplication, 'id'>) => {
     const application: JobApplication = {
@@ -88,7 +91,13 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">Track your job applications</p>
             </div>
           </div>
-          <AddApplicationDialog onAdd={handleAddApplication} />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCoverLetterOpen(true)}>
+              <Sparkles className="size-4" />
+              Generate Cover Letter
+            </Button>
+            <AddApplicationDialog onAdd={handleAddApplication} />
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -111,6 +120,11 @@ export default function Home() {
           />
         </div>
       </div>
+
+      <CoverLetterPanel
+        open={coverLetterOpen}
+        onOpenChange={setCoverLetterOpen}
+      />
     </main>
   )
 }
