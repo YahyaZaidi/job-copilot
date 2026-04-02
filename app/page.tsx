@@ -1,65 +1,116 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { StatsCards } from '@/components/stats-cards'
+import { ApplicationsTable } from '@/components/applications-table'
+import { AddApplicationDialog } from '@/components/add-application-dialog'
+import { Briefcase } from 'lucide-react'
+import type { ApplicationStatus, JobApplication } from '@/lib/types'
+
+// Sample data for demonstration
+const initialApplications: JobApplication[] = [
+  {
+    id: '1',
+    company: 'Vercel',
+    role: 'Senior Frontend Engineer',
+    dateApplied: '2026-03-28',
+    status: 'interview',
+    notes: 'Second round scheduled for next week',
+    jobUrl: 'https://vercel.com/careers',
+  },
+  {
+    id: '2',
+    company: 'Stripe',
+    role: 'Full Stack Developer',
+    dateApplied: '2026-03-25',
+    status: 'applied',
+    notes: 'Applied through referral',
+    jobUrl: 'https://stripe.com/jobs',
+  },
+  {
+    id: '3',
+    company: 'Notion',
+    role: 'Product Engineer',
+    dateApplied: '2026-03-20',
+    status: 'offer',
+    notes: 'Received offer! Negotiating salary',
+  },
+  {
+    id: '4',
+    company: 'Linear',
+    role: 'Software Engineer',
+    dateApplied: '2026-03-15',
+    status: 'rejected',
+    notes: 'Position filled internally',
+  },
+  {
+    id: '5',
+    company: 'Figma',
+    role: 'Frontend Developer',
+    dateApplied: '2026-03-10',
+    status: 'ghosted',
+    notes: 'No response after 3 weeks',
+  },
+]
 
 export default function Home() {
+  const [applications, setApplications] = useState<JobApplication[]>(initialApplications)
+
+  const handleAddApplication = (newApp: Omit<JobApplication, 'id'>) => {
+    const application: JobApplication = {
+      ...newApp,
+      id: Date.now().toString(),
+    }
+    setApplications((prev) => [application, ...prev])
+  }
+
+  const handleUpdateStatus = (id: string, status: ApplicationStatus) => {
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status } : app))
+    )
+  }
+
+  const handleDelete = (id: string) => {
+    setApplications((prev) => prev.filter((app) => app.id !== id))
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary">
+              <Briefcase className="size-6 text-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">JobTrack</h1>
+              <p className="text-sm text-muted-foreground">Track your job applications</p>
+            </div>
+          </div>
+          <AddApplicationDialog onAdd={handleAddApplication} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Stats Cards */}
+        <div className="mb-8">
+          <StatsCards applications={applications} />
         </div>
-      </main>
-    </div>
-  );
+
+        {/* Applications Table */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium">Applications</h2>
+            <p className="text-sm text-muted-foreground">
+              {applications.length} {applications.length === 1 ? 'application' : 'applications'}
+            </p>
+          </div>
+          <ApplicationsTable
+            applications={applications}
+            onUpdateStatus={handleUpdateStatus}
+            onDelete={handleDelete}
+          />
+        </div>
+      </div>
+    </main>
+  )
 }
