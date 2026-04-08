@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const anthropicStream = client.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system:
         'You are an expert career coach who writes compelling, tailored cover letters. Write in a professional but warm tone. Be specific — reference details from the job description. Keep it to 3–4 paragraphs. Do not include a subject line or date.',
@@ -85,6 +85,9 @@ Address it to "Dear Hiring Manager," and sign off with "Best regards,\nAlex John
         console.log('[cover-letter] stream complete')
       } catch (err) {
         console.error('[cover-letter] stream error:', err)
+        try {
+          await writer.write(encoder.encode(`\n\n[Error: ${(err as Error).message}]`))
+        } catch {}
       } finally {
         writer.close().catch(() => {})
       }

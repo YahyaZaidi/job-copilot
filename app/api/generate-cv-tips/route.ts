@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const anthropicStream = client.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system:
         'You are an expert career coach. Given a job description and a candidate\'s CV, return exactly 5 specific, actionable tips on how to tweak the CV for this specific role. Each tip MUST follow this exact format on its own line: "Update [section] to mention [specific thing] because this role requires [reason]". Return only the 5 tips, one per line, with no bullet points, numbering, introduction, or conclusion.',
@@ -83,6 +83,9 @@ Give me exactly 5 CV tips in the specified format.`,
         console.log('[cv-tips] stream complete')
       } catch (err) {
         console.error('[cv-tips] stream error:', err)
+        try {
+          await writer.write(encoder.encode(`\n\n[Error: ${(err as Error).message}]`))
+        } catch {}
       } finally {
         writer.close().catch(() => {})
       }
