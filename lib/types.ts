@@ -8,4 +8,5 @@ export interface JobApplication {
   status: ApplicationStatus
   notes: string
   jobUrl?: string
+  cvTips?: string[]
 }

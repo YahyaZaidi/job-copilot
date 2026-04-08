@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { Briefcase, Calendar, TrendingUp } from 'lucide-react'
+import { Briefcase, Calendar, TrendingUp, Clock } from 'lucide-react'
 import type { JobApplication } from '@/lib/types'
 
 interface StatsCardsProps {
@@ -13,6 +13,7 @@ export function StatsCards({ applications }: StatsCardsProps) {
   const interviews = applications.filter(app => app.status === 'interview' || app.status === 'offer').length
   const responses = applications.filter(app => app.status !== 'applied' && app.status !== 'ghosted').length
   const responseRate = totalApplications > 0 ? Math.round((responses / totalApplications) * 100) : 0
+  const awaitingResponse = applications.filter(app => app.status === 'applied').length
 
   const stats = [
     {
@@ -28,6 +29,12 @@ export function StatsCards({ applications }: StatsCardsProps) {
       description: 'Interview stage or beyond',
     },
     {
+      label: 'Awaiting Response',
+      value: awaitingResponse,
+      icon: Clock,
+      description: 'Still in applied status',
+    },
+    {
       label: 'Response Rate',
       value: `${responseRate}%`,
       icon: TrendingUp,
@@ -36,7 +43,7 @@ export function StatsCards({ applications }: StatsCardsProps) {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-4">
       {stats.map((stat) => (
         <Card key={stat.label} className="border-border/50">
           <CardContent className="pt-6">

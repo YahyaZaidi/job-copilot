@@ -17,16 +17,25 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { StatusBadge } from '@/components/status-badge'
-import { FileText, ExternalLink, Trash2 } from 'lucide-react'
+import { FileText, ExternalLink, Trash2, Sparkles } from 'lucide-react'
+import { differenceInCalendarDays } from 'date-fns'
+import { AddApplicationDialog } from '@/components/add-application-dialog'
 import type { ApplicationStatus, JobApplication } from '@/lib/types'
 
 interface ApplicationsTableProps {
   applications: JobApplication[]
   onUpdateStatus: (id: string, status: ApplicationStatus) => void
   onDelete: (id: string) => void
+  onOpenPanel?: (application: JobApplication) => void
+  onAdd: (application: Omit<JobApplication, 'id'>) => void
 }
 
-export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: ApplicationsTableProps) {
+function isStale(app: JobApplication): boolean {
+  if (app.status !== 'applied') return false
+  return differenceInCalendarDays(new Date(), new Date(app.dateApplied)) >= 14
+}
+
+export function ApplicationsTable({ applications, onUpdateStatus, onDelete, onOpenPanel, onAdd }: ApplicationsTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -37,12 +46,15 @@ export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: Ap
 
   if (applications.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-12 text-center">
-        <FileText className="size-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="font-medium mb-2">No applications yet</h3>
-        <p className="text-sm text-muted-foreground">
-          Add your first job application to start tracking your job search.
+      <div className="rounded-lg border border-dashed border-border p-16 text-center">
+        <div className="mx-auto mb-4 size-12 rounded-xl bg-primary/10 flex items-center justify-center">
+          <FileText className="size-6 text-primary" />
+        </div>
+        <h3 className="font-semibold text-lg mb-1">Start your job hunt</h3>
+        <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
+          Add your first application to get started. Every great career move begins with one application.
         </p>
+        <AddApplicationDialog onAdd={onAdd} />
       </div>
     )
   }
@@ -65,7 +77,7 @@ export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: Ap
             {applications.map((application) => (
               <TableRow key={application.id}>
                 <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {application.company}
                     {application.jobUrl && (
                       <a
@@ -76,6 +88,11 @@ export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: Ap
                       >
                         <ExternalLink className="size-3.5" />
                       </a>
+                    )}
+                    {isStale(application) && (
+                      <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-xs font-medium text-destructive">
+                        Chase up
+                      </span>
                     )}
                   </div>
                 </TableCell>
@@ -106,14 +123,27 @@ export function ApplicationsTable({ applications, onUpdateStatus, onDelete }: Ap
                   {application.notes || '—'}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={() => onDelete(application.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    {onOpenPanel && (
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => onOpenPanel(application)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Generate cover letter / CV tips"
+                      >
+                        <Sparkles className="size-4" />
+                      </Button>
+                    )}
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => onDelete(application.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
